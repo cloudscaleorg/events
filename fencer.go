@@ -20,8 +20,8 @@ func NewFencer() Fencer {
 	return f
 }
 
-// Fence indicates to the caller whether they should apply the current event or discard.
-// true indicates you should fence (discard) the event. true indicates you should not.
+// Fence indicates to the caller whether they should reduce the current event or discard.
+// true indicates you should fence (discard) the event. false indicates you should not.
 func (m fenceMap) Fence(kv *etcd.KeyValue) bool {
 	id := string(kv.Key)
 	// ModRevision will always increases even when key deleted
