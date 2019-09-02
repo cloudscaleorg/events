@@ -3,9 +3,9 @@ package events
 import (
 	"context"
 
-	etcd "github.com/coreos/etcd/clientV3"
 	"github.com/ldelossa/goframework/chkctx"
 	"github.com/rs/zerolog/log"
+	etcd "go.etcd.io/etcd/clientV3"
 )
 
 // Stream demultiplexes events from an etcd.WatchResponse and delivers them to the returned channel.

@@ -1,8 +1,8 @@
 package events
 
 import (
-	etcd "github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/rs/zerolog/log"
+	etcd "go.etcd.io/etcd/mvcc/mvccpb"
 )
 
 // Fencer takes an etcd KeyValue and determines if the kv should be fenced (discarded) off or not

@@ -3,8 +3,8 @@ package events
 import (
 	"context"
 
-	etcd "github.com/coreos/etcd/clientV3"
-	"github.com/coreos/etcd/mvcc/mvccpb"
+	etcd "go.etcd.io/etcd/clientV3"
+	"go.etcd.io/etcd/mvcc/mvccpb"
 )
 
 // snapshot does a GET of all the KV's at the configured prefix

@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
-	etcd "github.com/coreos/etcd/clientV3"
 	"github.com/ldelossa/goframework/backoff"
 	"github.com/ldelossa/goframework/chkctx"
+	etcd "go.etcd.io/etcd/clientV3"
 )
 
 const (
