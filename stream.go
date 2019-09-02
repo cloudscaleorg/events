@@ -19,17 +19,17 @@ func Stream(ctx context.Context, wC etcd.WatchChan) <-chan *etcd.Event {
 		defer close(ec)
 
 		// etcd client will close this channel if error occurs
-		for watchResp := range wC {
+		for wResp := range wC {
 			if ok, err := chkctx.Check(ctx); ok {
 				log.Info().Str("component", "Streamer").Msgf("streamer ctx canceled. returning: %v", err)
 				return
 			}
 
-			if watchResp.Canceled {
-				log.Info().Str("component", "Streamer").Msgf("watch channel error encountered. returning: %v")
+			if wResp.Canceled {
+				log.Info().Str("component", "Streamer").Msgf("watch channel error encountered. returning: %v", wResp.Err())
 			}
 
-			for _, event := range watchResp.Events {
+			for _, event := range wResp.Events {
 				eC <- event
 			}
 		}

@@ -27,7 +27,6 @@ func (m fenceMap) Fence(kv *etcd.KeyValue) bool {
 	// ModRevision will always increases even when key deleted
 	inRev := kv.ModRevision
 
-	// early returns
 	curRev, ok := m[id]
 	if !ok {
 		log.Debug().Str("component", "fenceMap").Msgf("new: %v revision: %v", id, inRev)

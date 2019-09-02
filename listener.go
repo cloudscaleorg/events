@@ -24,10 +24,8 @@ type ReduceFunc func(e *etcd.Event)
 type State int
 
 const (
-	// stops the event listener
-	Terminal State = iota
 	// opens a watch channel with etcd at the configured prefix. buffers events for replay
-	Buffer
+	Buffer State = iota
 	// queries the configured prefix for current k/vs.
 	Snapshot
 	// calls ReduceFunc for any existing events on the watch channel and all subsequent.
