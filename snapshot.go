@@ -30,5 +30,6 @@ func snapshot(ctx context.Context, l *Listener) State {
 		}
 	}
 
+	l.Backoff.Reset()
 	return Listening
 }

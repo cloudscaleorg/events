@@ -2,19 +2,12 @@ package events
 
 import (
 	"context"
+	"fmt"
 	"sync"
-	"time"
 
 	"github.com/ldelossa/goframework/backoff"
 	"github.com/ldelossa/goframework/chkctx"
 	etcd "go.etcd.io/etcd/clientV3"
-)
-
-const (
-	// how long lease manager will wait for etcd operations to complete
-	defaultOPTimeout = 30 * time.Second
-	// upper bound leaseManager will wait to retry when unsuccessfully obtaining a lease
-	defaultMaxBackoff = 64 * time.Second
 )
 
 // ReduceFunc is called on each event ingress. provided by the caller on construction
@@ -24,8 +17,10 @@ type ReduceFunc func(e *etcd.Event)
 type State int
 
 const (
+	// used to express the listener is existing
+	Terminal State = iota
 	// opens a watch channel with etcd at the configured prefix. buffers events for replay
-	Buffer State = iota
+	Buffer
 	// queries the configured prefix for current k/vs.
 	Snapshot
 	// calls ReduceFunc for any existing events on the watch channel and all subsequent.
@@ -38,18 +33,6 @@ var stateToStateFunc = map[State]stateFunc{
 	Buffer:    buffer,
 	Snapshot:  snapshot,
 	Listening: listening,
-}
-
-// Opts is configuration for a listener
-type Opts struct {
-	// the prefix to listen on
-	Prefix string
-	Client *etcd.Client
-	F      ReduceFunc
-	// max duration we will wait to retry etcd operations
-	MaxBackoff time.Duration
-	// max time we will wait for etcd operations to complete
-	OPTimeout time.Duration
 }
 
 // Listener maintains an active connection to etcd via a watch channel. for each event
@@ -70,7 +53,11 @@ type Listener struct {
 }
 
 // NewListener is a constructor for an event.Listener
-func NewListener(opts Opts) *Listener {
+func NewListener(opts Opts) (*Listener, error) {
+	if err := opts.Parse(); err != nil {
+		return nil, err
+	}
+
 	backoff := backoff.NewExpoBackoff(opts.MaxBackoff)
 	stateMu := &sync.RWMutex{}
 	return &Listener{
@@ -82,7 +69,7 @@ func NewListener(opts Opts) *Listener {
 		stateMu: stateMu,
 		state:   Buffer,
 		ready:   sync.NewCond(stateMu.RLocker()),
-	}
+	}, nil
 }
 
 // Listen kicks off the Listener in it's own go routine. this method is
@@ -99,10 +86,13 @@ func (l *Listener) run(ctx context.Context) {
 		l.Backoff.Do()
 
 		if ok, _ := chkctx.Check(ctx); ok {
+			l.setState(Terminal)
+			// broadcast to unblock any callers blocked on Ready
+			l.ready.Broadcast()
 			return
 		}
 
-		l.SetState(state)
+		l.setState(state)
 	}
 }
 
@@ -113,8 +103,34 @@ func (l *Listener) GetState() State {
 	return state
 }
 
-func (l *Listener) SetState(s State) {
+func (l *Listener) setState(s State) {
 	l.stateMu.Lock()
 	l.state = s
 	l.stateMu.Unlock()
+
+	l.ready.Broadcast()
+}
+
+// Ready will block until the Listener is in Listening state, Terminal state,
+// or the provided ctx is canceled.
+//
+// If provided ctx is canceled or Terminal state
+// encountered an error is returned.
+func (l *Listener) Ready(ctx context.Context) error {
+	l.ready.L.Lock()
+	defer l.ready.L.Unlock()
+	for {
+		if done, err := chkctx.Check(ctx); done {
+			return err
+		}
+
+		if l.state == Terminal {
+			return fmt.Errorf("listener is returning. can no longer block on ready")
+		}
+
+		if l.state == Listening {
+			return nil
+		}
+		l.ready.Wait()
+	}
 }
