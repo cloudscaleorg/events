@@ -8,9 +8,7 @@ import (
 )
 
 const (
-	// how long lease manager will wait for etcd operations to complete
-	defaultOPTimeout = 30 * time.Second
-	// upper bound leaseManager will wait to retry when unsuccessfully obtaining a lease
+	defaultOPTimeout  = 30 * time.Second
 	defaultMaxBackoff = 64 * time.Second
 )
 
