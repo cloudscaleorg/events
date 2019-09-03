@@ -3,7 +3,7 @@ package events
 import (
 	"context"
 
-	etcd "go.etcd.io/etcd/clientV3"
+	etcd "go.etcd.io/etcd/clientv3"
 	"go.etcd.io/etcd/mvcc/mvccpb"
 )
 
@@ -15,8 +15,9 @@ func snapshot(ctx context.Context, l *Listener) State {
 
 	resp, err := l.Client.KV.Get(getCTX, l.Prefix, etcd.WithPrefix())
 	if err != nil {
-		// restart state machine
+		l.logger.Error().Msgf("error getting etcd keys at given prefix. backing off...: %v", err)
 		l.Backoff.Increment()
+		// restart state machine after backoff
 		return Buffer
 	}
 
@@ -31,5 +32,6 @@ func snapshot(ctx context.Context, l *Listener) State {
 	}
 
 	l.Backoff.Reset()
+	l.logger.Debug().Msg("snapshot successfully created")
 	return Listening
 }

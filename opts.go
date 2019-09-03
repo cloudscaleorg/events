@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	etcd "go.etcd.io/etcd/clientV3"
+	etcd "go.etcd.io/etcd/clientv3"
 )
 
 const (

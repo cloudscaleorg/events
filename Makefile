@@ -20,8 +20,13 @@ etcd-down:
 	-docker kill etcd-gcr-v3.4.0-events
 	-docker rm etcd-gcr-v3.4.0-events
 
-.PHONY: tests-integration
-tests-integration:
+.PHONY: automated-integration
+automated-integration:
 	make etcd-down
 	make etcd-up
-	go test -v -race -tags integration ./...
+	go test -count=1 -race -tags integration ./...
+
+.PHONY: verbose-integration
+verbose-integration:
+	go test -v -count=1 -race -tags integration ./...
+

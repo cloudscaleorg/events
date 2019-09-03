@@ -7,6 +7,8 @@ import (
 	etcd "go.etcd.io/etcd/mvcc/mvccpb"
 )
 
+// TestFencer_Fence confirms older revisions will
+// not be reduced
 func TestFencer_Fence(t *testing.T) {
 	var table = []struct {
 		name   string
@@ -55,6 +57,8 @@ func TestFencer_Fence(t *testing.T) {
 	}
 }
 
+// TestFencer_Update confirms newer revision
+// will be reduced
 func TestFencer_Update(t *testing.T) {
 	var table = []struct {
 		name   string

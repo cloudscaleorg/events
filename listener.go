@@ -7,7 +7,9 @@ import (
 
 	"github.com/ldelossa/goframework/backoff"
 	"github.com/ldelossa/goframework/chkctx"
-	etcd "go.etcd.io/etcd/clientV3"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	etcd "go.etcd.io/etcd/clientv3"
 )
 
 // ReduceFunc is called on each event ingress. provided by the caller on construction
@@ -16,8 +18,19 @@ type ReduceFunc func(e *etcd.Event)
 // State is the enum identifying the possible states of a Listener
 type State int
 
+func (s *State) ToString() string {
+	m := map[State]string{
+		0: "Terminal",
+		1: "Buffer",
+		2: "Snapshot",
+		3: "Listening",
+	}
+	return m[*s]
+}
+
+// States and explanations
 const (
-	// used to express the listener is existing
+	// used to express the listener is exiting
 	Terminal State = iota
 	// opens a watch channel with etcd at the configured prefix. buffers events for replay
 	Buffer
@@ -50,10 +63,12 @@ type Listener struct {
 	eC <-chan *etcd.Event
 	// stops the Listen() method from spawning multiple go routines
 	active bool
+	// a logger with per listener context
+	logger zerolog.Logger
 }
 
 // NewListener is a constructor for an event.Listener
-func NewListener(opts Opts) (*Listener, error) {
+func NewListener(opts *Opts) (*Listener, error) {
 	if err := opts.Parse(); err != nil {
 		return nil, err
 	}
@@ -69,12 +84,14 @@ func NewListener(opts Opts) (*Listener, error) {
 		stateMu: stateMu,
 		state:   Buffer,
 		ready:   sync.NewCond(stateMu.RLocker()),
+		logger:  log.With().Str("component", "listener").Str("prefix", opts.Prefix).Logger(),
 	}, nil
 }
 
 // Listen kicks off the Listener in it's own go routine. this method is
 // non-blocking. cancel the ctx to stop the Listener.
 func (l *Listener) Listen(ctx context.Context) {
+	l.logger.Debug().Msg("listener started")
 	go l.run(ctx)
 }
 
@@ -109,6 +126,7 @@ func (l *Listener) setState(s State) {
 	l.stateMu.Unlock()
 
 	l.ready.Broadcast()
+	l.logger.Info().Msgf("state change: %v", s.ToString())
 }
 
 // Ready will block until the Listener is in Listening state, Terminal state,
@@ -117,6 +135,7 @@ func (l *Listener) setState(s State) {
 // If provided ctx is canceled or Terminal state
 // encountered an error is returned.
 func (l *Listener) Ready(ctx context.Context) error {
+	// Rlocks used here
 	l.ready.L.Lock()
 	defer l.ready.L.Unlock()
 	for {

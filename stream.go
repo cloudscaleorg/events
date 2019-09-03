@@ -3,9 +3,11 @@ package events
 import (
 	"context"
 
+	goLog "log"
+
 	"github.com/ldelossa/goframework/chkctx"
 	"github.com/rs/zerolog/log"
-	etcd "go.etcd.io/etcd/clientV3"
+	etcd "go.etcd.io/etcd/clientv3"
 )
 
 // Stream demultiplexes events from an etcd.WatchResponse and delivers them to the returned channel.
@@ -22,11 +24,14 @@ func Stream(ctx context.Context, wC etcd.WatchChan) <-chan *etcd.Event {
 		for wResp := range wC {
 			if ok, err := chkctx.Check(ctx); ok {
 				log.Info().Str("component", "Streamer").Msgf("streamer ctx canceled. returning: %v", err)
+				goLog.Printf("returned")
 				return
 			}
 
 			if wResp.Canceled {
 				log.Info().Str("component", "Streamer").Msgf("watch channel error encountered. returning: %v", wResp.Err())
+				goLog.Printf("returned")
+				return
 			}
 
 			for _, event := range wResp.Events {
