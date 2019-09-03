@@ -3,8 +3,6 @@ package events
 import (
 	"context"
 
-	goLog "log"
-
 	"github.com/ldelossa/goframework/chkctx"
 	"github.com/rs/zerolog/log"
 	etcd "go.etcd.io/etcd/clientv3"
@@ -23,14 +21,12 @@ func Stream(ctx context.Context, wC etcd.WatchChan) <-chan *etcd.Event {
 		// etcd client will close this channel if error occurs
 		for wResp := range wC {
 			if ok, err := chkctx.Check(ctx); ok {
-				log.Info().Str("component", "Streamer").Msgf("streamer ctx canceled. returning: %v", err)
-				goLog.Printf("returned")
+				log.Info().Str("component", "Stream").Msgf("stream ctx canceled. returning: %v", err)
 				return
 			}
 
 			if wResp.Canceled {
-				log.Info().Str("component", "Streamer").Msgf("watch channel error encountered. returning: %v", wResp.Err())
-				goLog.Printf("returned")
+				log.Info().Str("component", "Stream").Msgf("watch channel error encountered. returning: %v", wResp.Err())
 				return
 			}
 
