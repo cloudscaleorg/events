@@ -59,10 +59,8 @@ type Listener struct {
 	stateMu *sync.RWMutex
 	state   State
 	ready   *sync.Cond
-	// the configured prefix to listen on
+	// channel we listen to events on
 	eC <-chan *etcd.Event
-	// stops the Listen() method from spawning multiple go routines
-	active bool
 	// a logger with per listener context
 	logger zerolog.Logger
 }
