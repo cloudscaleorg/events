@@ -25,7 +25,7 @@ unit:
 	go test -count=1 -race ./...
 
 .PHONY: unit-verbose
-unit:
+unit-verbose:
 	go test -v -count=1 -race ./...
 
 .PHONY: automated-integration
