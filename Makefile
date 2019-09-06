@@ -35,6 +35,6 @@ automated-integration:
 	go test -count=1 -race -tags integration ./...
 
 .PHONY: integration-verbose
-verbose-integration:
+integration-verbose:
 	go test -v -count=1 -race -tags integration ./...
 
