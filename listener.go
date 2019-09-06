@@ -2,7 +2,6 @@ package events
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/ldelossa/goframework/backoff"
@@ -137,12 +136,12 @@ func (l *Listener) Ready(ctx context.Context) error {
 	l.ready.L.Lock()
 	defer l.ready.L.Unlock()
 	for {
-		if done, err := chkctx.Check(ctx); done {
-			return err
+		if done, _ := chkctx.Check(ctx); done {
+			return ErrReadyTimeout
 		}
 
 		if l.state == Terminal {
-			return fmt.Errorf("listener is returning. can no longer block on ready")
+			return ErrListenerStopped
 		}
 
 		if l.state == Listening {

@@ -69,6 +69,7 @@ func Test_Listener_Ready_Timeout(t *testing.T) {
 		t.Fatalf("test timed out. ready never unblocked")
 	case e := <-doneChan:
 		assert.Error(t, e)
+		assert.IsType(t, ErrReadyTimeout, e)
 	}
 }
 
@@ -100,6 +101,7 @@ func Test_Listener_Ready_Terminal(t *testing.T) {
 		t.Fatalf("test timed out. ready never unblocked")
 	case e := <-doneChan:
 		assert.Error(t, e)
+		assert.IsType(t, ErrListenerStopped, e)
 	}
 
 }
