@@ -34,7 +34,7 @@ automated-integration:
 	make etcd-up
 	go test -count=1 -race -tags integration ./...
 
-.PHONY: verbose-integration
-verbose-integration:
+.PHONY: integration-verbose
+integration-verbose:
 	go test -v -count=1 -race -tags integration ./...
 

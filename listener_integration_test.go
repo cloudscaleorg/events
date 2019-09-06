@@ -15,7 +15,10 @@ import (
 
 const (
 	testPrefix = "events"
+	localETCD  = "localhost:12379"
 )
+
+var endpoints = []string{localETCD}
 
 // Test_Listener_Events confirms when we PUT key/values to
 // etcd the event listener reduces them.
@@ -46,7 +49,7 @@ func Test_Listener_Events(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			eChan := make(chan *etcd.Event, 1024)
 
-			client, teardown := et.Setup(t)
+			client, teardown := et.Setup(t, endpoints)
 			defer teardown()
 
 			f := func(e *etcd.Event) {
