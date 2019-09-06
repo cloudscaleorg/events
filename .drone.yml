@@ -24,6 +24,8 @@ services:
 steps:
   - name: unit-and-integration
     image: golang:1.13.0
+    environment:
+      GOFRAMEWORK_ETCD_ADDRS: etcd:2379
     commands:
       - sleep 5
       - make integration-verbose
