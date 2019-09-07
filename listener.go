@@ -2,7 +2,8 @@ package events
 
 import (
 	"context"
-	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/ldelossa/goframework/backoff"
 	"github.com/ldelossa/goframework/chkctx"
@@ -55,9 +56,8 @@ type Listener struct {
 	F       ReduceFunc
 	Client  *etcd.Client
 	Backoff backoff.BackOff
-	stateMu *sync.RWMutex
-	state   State
-	ready   *sync.Cond
+	// holds our State type
+	state atomic.Value
 	// channel we listen to events on
 	eC <-chan *etcd.Event
 	// a logger with per listener context
@@ -70,19 +70,16 @@ func NewListener(opts *Opts) (*Listener, error) {
 		return nil, err
 	}
 
-	backoff := backoff.NewExpoBackoff(opts.MaxBackoff)
-	stateMu := &sync.RWMutex{}
-	return &Listener{
+	l := &Listener{
 		Fencer:  NewFencer(),
 		Prefix:  opts.Prefix,
 		F:       opts.F,
 		Client:  opts.Client,
-		Backoff: backoff,
-		stateMu: stateMu,
-		state:   Buffer,
-		ready:   sync.NewCond(stateMu.RLocker()),
+		Backoff: backoff.NewExpoBackoff(opts.MaxBackoff),
 		logger:  log.With().Str("component", "listener").Str("prefix", opts.Prefix).Logger(),
-	}, nil
+	}
+	l.setState(Buffer)
+	return l, nil
 }
 
 // Listen kicks off the Listener in it's own go routine. this method is
@@ -96,13 +93,11 @@ func (l *Listener) Listen(ctx context.Context) {
 func (l *Listener) run(ctx context.Context) {
 	var state State
 	for {
-		state = stateToStateFunc[l.state](ctx, l)
+		state = stateToStateFunc[l.getState()](ctx, l)
 		l.Backoff.Do()
 
 		if ok, _ := chkctx.Check(ctx); ok {
 			l.setState(Terminal)
-			// broadcast to unblock any callers blocked on Ready
-			l.ready.Broadcast()
 			return
 		}
 
@@ -110,19 +105,13 @@ func (l *Listener) run(ctx context.Context) {
 	}
 }
 
-func (l *Listener) GetState() State {
-	l.stateMu.RLock()
-	state := l.state
-	l.stateMu.RUnlock()
-	return state
+func (l *Listener) getState() State {
+	s := l.state.Load()
+	return s.(State)
 }
 
 func (l *Listener) setState(s State) {
-	l.stateMu.Lock()
-	l.state = s
-	l.stateMu.Unlock()
-
-	l.ready.Broadcast()
+	l.state.Store(s)
 	l.logger.Info().Msgf("state change: %v", s.ToString())
 }
 
@@ -132,21 +121,23 @@ func (l *Listener) setState(s State) {
 // If provided ctx is canceled or Terminal state
 // encountered an error is returned.
 func (l *Listener) Ready(ctx context.Context) error {
-	// Rlocks used here
-	l.ready.L.Lock()
-	defer l.ready.L.Unlock()
+	if l.getState() == Listening {
+		return nil
+	}
+
+	t := time.NewTicker(500 * time.Millisecond)
+	defer t.Stop()
 	for {
-		if done, _ := chkctx.Check(ctx); done {
+		select {
+		case <-ctx.Done():
 			return ErrReadyTimeout
+		case <-t.C:
+			if l.getState() == Terminal {
+				return ErrListenerStopped
+			}
+			if l.getState() == Listening {
+				return nil
+			}
 		}
-
-		if l.state == Terminal {
-			return ErrListenerStopped
-		}
-
-		if l.state == Listening {
-			return nil
-		}
-		l.ready.Wait()
 	}
 }
