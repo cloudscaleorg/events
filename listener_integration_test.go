@@ -52,7 +52,7 @@ func Test_Listener_Events(t *testing.T) {
 			client, teardown := et.Setup(t, endpoints)
 			defer teardown()
 
-			f := func(e *etcd.Event) {
+			f := func(e *etcd.Event, snaphot bool) {
 				eChan <- e
 			}
 

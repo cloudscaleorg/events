@@ -21,13 +21,15 @@ func snapshot(ctx context.Context, l *Listener) State {
 		return Buffer
 	}
 
+	var snapshot = true
 	for _, kv := range resp.Kvs {
-		if !l.Fencer.Fence(kv) {
+		if !l.Fence(kv) {
 			// synthesize an event. a get will not return deleted KVs
 			l.F(&etcd.Event{
 				Type: mvccpb.PUT,
 				Kv:   kv,
-			})
+			}, snapshot)
+			snapshot = false
 		}
 	}
 

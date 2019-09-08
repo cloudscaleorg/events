@@ -13,7 +13,7 @@ func listening(ctx context.Context, l *Listener) State {
 	l.logger.Info().Msg("listening for events...")
 	for event := range l.eC {
 		if !l.Fence(event.Kv) {
-			l.F(event)
+			l.F(event, false)
 		}
 	}
 
