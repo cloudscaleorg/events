@@ -15,7 +15,7 @@ func Test_Listener_Ready_Listening(t *testing.T) {
 	opts := &Opts{
 		Prefix: "null",
 		Client: &etcd.Client{},
-		F:      func(e *etcd.Event) {},
+		F:      func(e *etcd.Event, snapshot bool) {},
 	}
 
 	l, err := NewListener(opts)
@@ -48,7 +48,7 @@ func Test_Listener_Ready_Timeout(t *testing.T) {
 	opts := &Opts{
 		Prefix: "null",
 		Client: &etcd.Client{},
-		F:      func(e *etcd.Event) {},
+		F:      func(e *etcd.Event, snapshot bool) {},
 	}
 
 	l, err := NewListener(opts)
@@ -79,7 +79,7 @@ func Test_Listener_Ready_Terminal(t *testing.T) {
 	opts := &Opts{
 		Prefix: "null",
 		Client: &etcd.Client{},
-		F:      func(e *etcd.Event) {},
+		F:      func(e *etcd.Event, snapshot bool) {},
 	}
 
 	l, err := NewListener(opts)

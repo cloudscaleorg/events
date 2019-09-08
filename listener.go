@@ -13,7 +13,8 @@ import (
 )
 
 // ReduceFunc is called on each event ingress. provided by the caller on construction
-type ReduceFunc func(e *etcd.Event)
+// snapshot will be true iff event is the first event reduced in the snapshot state.
+type ReduceFunc func(e *etcd.Event, snapshot bool)
 
 // State is the enum identifying the possible states of a Listener
 type State int
@@ -95,12 +96,10 @@ func (l *Listener) run(ctx context.Context) {
 	for {
 		state = stateToStateFunc[l.getState()](ctx, l)
 		l.Backoff.Do()
-
 		if ok, _ := chkctx.Check(ctx); ok {
 			l.setState(Terminal)
 			return
 		}
-
 		l.setState(state)
 	}
 }
